@@ -1,6 +1,6 @@
-{{- if not .Values.vault.filePersistence.create -}}
-apiVersion: extensions/v1beta1
-kind: Deployment
+{{- if .Values.vault.filePersistence.create -}}
+apiVersion: apps/v1beta1
+kind: StatefulSet
 metadata:
   name: {{ template "vault.fullname" . }}
   labels:
@@ -47,6 +47,8 @@ spec:
         - name: {{ .secretName }}
           mountPath: {{ .mountPath }}
         {{- end }}
+        - name: file-backend
+          mountPath: "{{ .Values.vault.config.storage.file.path }}"
         resources:
 {{ toYaml .Values.resources | indent 10 }}
       affinity:
@@ -70,4 +72,18 @@ spec:
           secret:
             secretName: {{ .secretName }}
         {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: file-backend
+      spec:
+        accessModes:
+{{ toYaml .Values.vault.filePersistence.accessModes | indent 10 }}
+        {{- if .Values.vault.filePersistence.storageClass }}
+        storageClassName: "{{ .Values.vault.filePersistence.storageClass }}"
+        {{- else }}
+        storageClassName: ""
+        {{- end }}
+        resources:
+          requests:
+            storage: "{{ .Values.vault.filePersistence.size }}"
 {{- end -}}
